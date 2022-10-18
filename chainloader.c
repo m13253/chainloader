@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <windows.h>
+
 #include <commctrl.h>
 
 static PWSTR get_next_cmdline(void)
@@ -45,12 +46,6 @@ static PWSTR get_next_cmdline(void)
             }
             num_backslashes = 0;
             break;
-        case L'\\':
-            if (argi == 1) {
-                return &cmdline[i];
-            }
-            num_backslashes++;
-            break;
         case L'"':
             if (argi == 1) {
                 return &cmdline[i];
@@ -59,6 +54,12 @@ static PWSTR get_next_cmdline(void)
                 is_quoted = !is_quoted;
             }
             num_backslashes = 0;
+            break;
+        case L'\\':
+            if (argi == 1) {
+                return &cmdline[i];
+            }
+            num_backslashes++;
             break;
         default:
             if (argi == 1) {
