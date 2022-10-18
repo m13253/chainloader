@@ -1,10 +1,10 @@
-# exewrapper
+# chainloader
 A small Windows program that runs another program specified by command line arguments
 
 ## Usage
 
 ```
-exewrapper.exe calc.exe
+chainloader.exe calc.exe
 ```
 
 ## License

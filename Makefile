@@ -4,13 +4,13 @@ CC = x86_64-w64-mingw32-gcc
 RC = x86_64-w64-mingw32-windres
 RM = rm -f
 
-all: exewrapper.exe
+all: chainloader.exe
 
 clean:
-	$(RM) exewrapper.exe exewrapper.res
+	$(RM) chainloader.exe chainloader.res
 
-exewrapper.exe: exewrapper.c exewrapper.res
-	$(CC) -ffreestanding -mwindows -nolibc -nostdlib -s -std=c99 -Ofast -Wall -Wextra -o $@ $< exewrapper.res -lcomctl32 -lkernel32 -luser32
+chainloader.exe: chainloader.c chainloader.res
+	$(CC) -ffreestanding -mwindows -nolibc -nostdlib -s -std=c99 -Ofast -Wall -Wextra -o $@ $< chainloader.res -lcomctl32 -lkernel32 -luser32
 
-exewrapper.res: exewrapper.rc
+chainloader.res: chainloader.rc
 	$(RC) -O coff -o $@ $<
