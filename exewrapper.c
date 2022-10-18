@@ -23,8 +23,9 @@
 */
 
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <windows.h>
+#include <commctrl.h>
 
 static PWSTR get_next_cmdline(void)
 {
@@ -39,7 +40,7 @@ static PWSTR get_next_cmdline(void)
             return NULL;
         case L'\t':
         case L' ':
-            if (!is_quoted && (i == 0 || cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' ')) {
+            if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
                 argi++;
             }
             num_backslashes = 0;
@@ -66,6 +67,7 @@ static PWSTR get_next_cmdline(void)
             num_backslashes = 0;
         }
     }
+    return NULL;
 }
 
 static void exit_with_error_message(DWORD error_code)
@@ -84,8 +86,10 @@ static void exit_with_error_message(DWORD error_code)
     ExitProcess(error_code);
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+void WINAPI WinMainCRTStartup(void)
 {
+    InitCommonControls();
+
     PWSTR next_cmdline = get_next_cmdline();
     if (!next_cmdline) {
         MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));

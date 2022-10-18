@@ -10,7 +10,7 @@ clean:
 	$(RM) exewrapper.exe exewrapper.res
 
 exewrapper.exe: exewrapper.c exewrapper.res
-	$(CC) -municode -mwindows -s -std=c99 -Ofast -Wextra -o $@ $< exewrapper.res
+	$(CC) -ffreestanding -mwindows -nolibc -nostdlib -s -std=c99 -Ofast -Wall -Wextra -o $@ $< exewrapper.res -lcomctl32 -lkernel32 -luser32
 
 exewrapper.res: exewrapper.rc
 	$(RC) -O coff -o $@ $<
