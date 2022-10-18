@@ -71,18 +71,16 @@ static PWSTR get_next_cmdline(void)
 static void exit_with_error_message(DWORD error_code)
 {
     LPWSTR buffer = NULL;
-    if (FormatMessageW(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL,
             error_code,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
             (LPWSTR)&buffer,
             0,
             NULL)
-        == FALSE) {
-        ExitProcess(error_code);
+        != 0) {
+        MessageBoxExW(NULL, buffer, NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
     };
-    MessageBoxExW(NULL, buffer, L"Error", MB_OK | MB_ICONERROR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
     ExitProcess(error_code);
 }
 
@@ -90,7 +88,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 {
     PWSTR next_cmdline = get_next_cmdline();
     if (!next_cmdline) {
-        MessageBoxExW(NULL, L"Next executable not specified.", L"Error", MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+        MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
         ExitProcess(ERROR_BAD_ARGUMENTS);
     }
 
