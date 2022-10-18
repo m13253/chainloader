@@ -10,8 +10,7 @@ static PWSTR get_next_cmdline(void)
 
     LPWSTR cmdline = GetCommandLineW();
     for (size_t i = 0; cmdline && argi < 2; i++) {
-        WCHAR c = cmdline[i];
-        switch (c) {
+        switch (cmdline[i]) {
         case L'\0':
             return NULL;
         case L'\t':
