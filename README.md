@@ -9,4 +9,4 @@ exewrapper.exe calc.exe
 
 ## License
 
-[LICENSE](MIT License)
+[MIT License](LICENSE)
