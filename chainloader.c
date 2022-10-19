@@ -24,74 +24,22 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdnoreturn.h>
+
+#define DECLSPEC_NORETURN noreturn
 #include <windows.h>
 
 #include <commctrl.h>
 
-static PWSTR get_next_cmdline(void)
-{
-    size_t argi = 0;
-    size_t num_backslashes = 0;
-    bool is_quoted = false;
+noreturn void WINAPI WinMainCRTStartup(void);
+static LPWSTR WINAPI get_next_cmdline(void);
+static noreturn void WINAPI exit_with_error_message(DWORD error_code);
 
-    LPWSTR cmdline = GetCommandLineW();
-    for (size_t i = 0; cmdline && argi < 2; i++) {
-        switch (cmdline[i]) {
-        case L'\0':
-            return NULL;
-        case L'\t':
-        case L' ':
-            if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
-                argi++;
-            }
-            num_backslashes = 0;
-            break;
-        case L'"':
-            if (argi == 1) {
-                return &cmdline[i];
-            }
-            if (num_backslashes % 2 == 0) {
-                is_quoted = !is_quoted;
-            }
-            num_backslashes = 0;
-            break;
-        case L'\\':
-            if (argi == 1) {
-                return &cmdline[i];
-            }
-            num_backslashes++;
-            break;
-        default:
-            if (argi == 1) {
-                return &cmdline[i];
-            }
-            num_backslashes = 0;
-        }
-    }
-    return NULL;
-}
-
-static void exit_with_error_message(DWORD error_code)
-{
-    LPWSTR buffer = NULL;
-    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL,
-            error_code,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            (LPWSTR)&buffer,
-            0,
-            NULL)
-        != 0) {
-        MessageBoxExW(NULL, buffer, NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
-    };
-    ExitProcess(error_code);
-}
-
-void WINAPI WinMainCRTStartup(void)
+void WinMainCRTStartup(void)
 {
     InitCommonControls();
 
-    PWSTR next_cmdline = get_next_cmdline();
+    LPWSTR next_cmdline = get_next_cmdline();
     if (!next_cmdline) {
         MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
         ExitProcess(ERROR_BAD_ARGUMENTS);
@@ -121,4 +69,61 @@ void WINAPI WinMainCRTStartup(void)
     CloseHandle(process_info.hProcess);
 
     ExitProcess(exit_code);
+}
+
+LPWSTR get_next_cmdline(void)
+{
+    size_t argi = 0;
+    bool is_quoted = false;
+    bool is_num_backslashes_odd = false;
+
+    LPWSTR cmdline = GetCommandLineW();
+    for (size_t i = 0; cmdline; i++) {
+        switch (cmdline[i]) {
+        case L'\0':
+            return NULL;
+        case L'\t':
+        case L' ':
+            if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
+                argi++;
+            }
+            is_num_backslashes_odd = false;
+            break;
+        case L'"':
+            if (argi > 0) {
+                return &cmdline[i];
+            }
+            is_quoted = !!is_quoted == !!is_num_backslashes_odd;
+            is_num_backslashes_odd = false;
+            break;
+        case L'\\':
+            if (argi > 0) {
+                return &cmdline[i];
+            }
+            is_num_backslashes_odd = !is_num_backslashes_odd;
+            break;
+        default:
+            if (argi > 0) {
+                return &cmdline[i];
+            }
+            is_num_backslashes_odd = false;
+        }
+    }
+    return NULL;
+}
+
+void exit_with_error_message(DWORD error_code)
+{
+    LPWSTR buffer = NULL;
+    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            error_code,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPWSTR)&buffer,
+            0,
+            NULL)
+        != 0) {
+        MessageBoxExW(NULL, buffer, NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
+    };
+    ExitProcess(error_code);
 }

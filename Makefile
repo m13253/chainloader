@@ -10,7 +10,7 @@ clean:
 	$(RM) chainloader.exe chainloader.res
 
 chainloader.exe: chainloader.c chainloader.res
-	$(CC) -ffreestanding -mwindows -nolibc -nostdlib -s -std=c99 -Ofast -Wall -Wextra -o $@ $< chainloader.res -lcomctl32 -lkernel32 -luser32
+	$(CC) -fno-asynchronous-unwind-tables -municode -mwindows -nolibc -nostdlib -s -std=c11 -Ofast -Wall -Wextra -o $@ $< chainloader.res -lcomctl32 -lkernel32 -luser32
 
 chainloader.res: chainloader.rc
 	$(RC) -O coff -o $@ $<
