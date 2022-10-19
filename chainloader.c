@@ -28,7 +28,6 @@
 
 #define DECLSPEC_NORETURN noreturn
 #include <windows.h>
-
 #include <commctrl.h>
 
 noreturn void WINAPI WinMainCRTStartup(void);
