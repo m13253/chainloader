@@ -28,101 +28,116 @@
 
 #define DECLSPEC_NORETURN noreturn
 #include <windows.h>
+/* Must be below windows.h */
 #include <commctrl.h>
 
-noreturn void WINAPI WinMainCRTStartup(void);
-static LPWSTR WINAPI get_next_cmdline(void);
-static noreturn void WINAPI exit_with_error_message(DWORD error_code);
-
-void WinMainCRTStartup(void)
+noreturn void WINAPI WinMainCRTStartup(void)
 {
-    InitCommonControls();
-
-    LPWSTR next_cmdline = get_next_cmdline();
-    if (!next_cmdline) {
-        MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-        ExitProcess(ERROR_BAD_ARGUMENTS);
-    }
-
-    STARTUPINFOW startup_info;
-    GetStartupInfoW(&startup_info);
+    DWORD exit_code;
 
     PROCESS_INFORMATION process_info;
-    if (CreateProcessW(NULL, next_cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_info) == FALSE) {
-        DWORD error_code = GetLastError();
-        exit_with_error_message(error_code);
+    {
+        LPWSTR cmdline;
+        {
+            size_t argi = 0;
+            bool is_quoted = false;
+            bool is_num_backslashes_odd = false;
+
+            cmdline = GetCommandLineW();
+            if (!cmdline) {
+                goto invalid_cmdline;
+            }
+
+            for (size_t i = 0;; i++) {
+                switch (cmdline[i]) {
+                case L'\0':
+                    goto invalid_cmdline;
+                case L'\t':
+                case L' ':
+                    if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
+                        argi++;
+                    }
+                    is_num_backslashes_odd = false;
+                    break;
+                case L'"':
+                    if (argi > 0) {
+                        cmdline = &cmdline[i];
+                        goto start_child_process;
+                    }
+                    if (!is_num_backslashes_odd) {
+                        is_quoted = !is_quoted;
+                    }
+                    is_num_backslashes_odd = false;
+                    break;
+                case L'\\':
+                    if (argi > 0) {
+                        cmdline = &cmdline[i];
+                        goto start_child_process;
+                    }
+                    is_num_backslashes_odd = !is_num_backslashes_odd;
+                    break;
+                default:
+                    if (argi > 0) {
+                        cmdline = &cmdline[i];
+                        goto start_child_process;
+                    }
+                    is_num_backslashes_odd = false;
+                }
+            }
+            goto invalid_cmdline;
+        }
+
+    start_child_process : {
+        MessageBoxExW(NULL, cmdline, NULL, MB_OK | MB_ICONINFORMATION, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
+
+        STARTUPINFOW startup_info;
+        GetStartupInfoW(&startup_info);
+
+        if (CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_info) == FALSE) {
+            exit_code = GetLastError();
+            goto show_error_message;
+        }
     }
+    }
+
     CloseHandle(process_info.hThread);
 
     if (WaitForSingleObject(process_info.hProcess, INFINITE) != WAIT_OBJECT_0) {
-        DWORD error_code = GetLastError();
-        CloseHandle(process_info.hProcess);
-        exit_with_error_message(error_code);
+        exit_code = GetLastError();
+        goto show_error_message;
     }
-    DWORD exit_code;
+
     if (GetExitCodeProcess(process_info.hProcess, &exit_code) == FALSE) {
-        DWORD error_code = GetLastError();
-        CloseHandle(process_info.hProcess);
-        exit_with_error_message(error_code);
+        exit_code = GetLastError();
+        goto show_error_message;
     }
+
     CloseHandle(process_info.hProcess);
+    goto exit;
 
-    ExitProcess(exit_code);
+invalid_cmdline : {
+    InitCommonControls();
+    MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+    exit_code = ERROR_BAD_ARGUMENTS;
+    goto exit;
 }
 
-LPWSTR get_next_cmdline(void)
-{
-    size_t argi = 0;
-    bool is_quoted = false;
-    bool is_num_backslashes_odd = false;
-
-    LPWSTR cmdline = GetCommandLineW();
-    for (size_t i = 0; cmdline; i++) {
-        switch (cmdline[i]) {
-        case L'\0':
-            return NULL;
-        case L'\t':
-        case L' ':
-            if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
-                argi++;
-            }
-            is_num_backslashes_odd = false;
-            break;
-        case L'"':
-            if (argi > 0) {
-                return &cmdline[i];
-            }
-            is_quoted = !!is_quoted == !!is_num_backslashes_odd;
-            is_num_backslashes_odd = false;
-            break;
-        case L'\\':
-            if (argi > 0) {
-                return &cmdline[i];
-            }
-            is_num_backslashes_odd = !is_num_backslashes_odd;
-            break;
-        default:
-            if (argi > 0) {
-                return &cmdline[i];
-            }
-            is_num_backslashes_odd = false;
-        }
-    }
-    return NULL;
-}
-
-void exit_with_error_message(DWORD error_code)
-{
+show_error_message : {
     LPWSTR buffer = NULL;
     if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL,
-            error_code,
+            exit_code,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
             (LPWSTR)&buffer,
             0,
             NULL)
         != 0) {
+        InitCommonControls();
         MessageBoxExW(NULL, buffer, NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
     };
-    ExitProcess(error_code);
+}
+
+exit : {
+    ExitProcess(exit_code);
+}
 }
