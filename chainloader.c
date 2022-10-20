@@ -36,11 +36,16 @@ noreturn void WINAPI WinMainCRTStartup(void)
 
     PROCESS_INFORMATION process_info;
     {
+        // https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments?view=msvc-170
         LPWSTR cmdline = GetCommandLineW();
 
-        // https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments?view=msvc-170
         if (!cmdline) {
-            goto invalid_cmdline;
+        invalid_cmdline : {
+            InitCommonControls();
+            MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+            exit_code = ERROR_BAD_ARGUMENTS;
+            goto exit;
+        }
         }
 
     state_start : {
@@ -111,13 +116,6 @@ noreturn void WINAPI WinMainCRTStartup(void)
 
     CloseHandle(process_info.hProcess);
     goto exit;
-
-invalid_cmdline : {
-    InitCommonControls();
-    MessageBoxExW(NULL, L"Next executable not specified.", NULL, MB_OK | MB_ICONERROR, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-    exit_code = ERROR_BAD_ARGUMENTS;
-    goto exit;
-}
 
 show_error_message : {
     LPWSTR buffer = NULL;
