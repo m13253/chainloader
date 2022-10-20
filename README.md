@@ -1,5 +1,5 @@
 # chainloader
-A small Windows program that runs another program specified by command line arguments
+A small (2.6 KiB) Windows program that runs another program specified by command line arguments
 
 ## Usage
 
