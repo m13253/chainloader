@@ -37,59 +37,56 @@ noreturn void WINAPI WinMainCRTStartup(void)
 
     PROCESS_INFORMATION process_info;
     {
-        LPWSTR cmdline;
-        {
-            size_t argi = 0;
-            bool is_quoted = false;
-            bool is_num_backslashes_odd = false;
-
-            cmdline = GetCommandLineW();
-            if (!cmdline) {
-                goto invalid_cmdline;
-            }
-
-            for (size_t i = 0;; i++) {
-                switch (cmdline[i]) {
-                case L'\0':
-                    goto invalid_cmdline;
-                case L'\t':
-                case L' ':
-                    if (!is_quoted && (i == 0 || (cmdline[i - 1] != L'\t' && cmdline[i - 1] != L' '))) {
-                        argi++;
-                    }
-                    is_num_backslashes_odd = false;
-                    break;
-                case L'"':
-                    if (argi > 0) {
-                        cmdline = &cmdline[i];
-                        goto start_child_process;
-                    }
-                    if (!is_num_backslashes_odd) {
-                        is_quoted = !is_quoted;
-                    }
-                    is_num_backslashes_odd = false;
-                    break;
-                case L'\\':
-                    if (argi > 0) {
-                        cmdline = &cmdline[i];
-                        goto start_child_process;
-                    }
-                    is_num_backslashes_odd = !is_num_backslashes_odd;
-                    break;
-                default:
-                    if (argi > 0) {
-                        cmdline = &cmdline[i];
-                        goto start_child_process;
-                    }
-                    is_num_backslashes_odd = false;
-                }
-            }
+        LPWSTR cmdline = GetCommandLineW();
+        // https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments?view=msvc-170
+        if (!cmdline) {
             goto invalid_cmdline;
         }
 
-    start_child_process : {
-        MessageBoxExW(NULL, cmdline, NULL, MB_OK | MB_ICONINFORMATION, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT));
+    state_start : {
+        switch (cmdline[0]) {
+        case L'\0':
+            goto invalid_cmdline;
+        case L'\t':
+        case L' ':
+            cmdline++;
+            goto state_space;
+        case L'"':
+            cmdline++;
+            goto state_quote;
+        default:
+            cmdline++;
+            goto state_start;
+        }
+    }
 
+    state_quote : {
+        switch (cmdline[0]) {
+        case L'\0':
+            goto invalid_cmdline;
+        case L'"':
+            cmdline++;
+            goto state_start;
+        default:
+            cmdline++;
+            goto state_quote;
+        }
+    }
+
+    state_space : {
+        switch (cmdline[0]) {
+        case L'\0':
+            goto invalid_cmdline;
+        case L'\t':
+        case L' ':
+            cmdline++;
+            goto state_space;
+        default:
+            goto start_child_process;
+        }
+    }
+
+    start_child_process : {
         STARTUPINFOW startup_info;
         GetStartupInfoW(&startup_info);
 
