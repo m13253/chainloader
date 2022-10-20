@@ -10,7 +10,7 @@ clean:
 	$(RM) chainloader.exe chainloader.res
 
 chainloader.exe: chainloader.c chainloader.res
-	$(CC) -fno-asynchronous-unwind-tables -municode -mwindows -nolibc -nostdlib -s -std=c11 -Ofast -Wall -Wextra -o $@ $< chainloader.res -lcomctl32 -lkernel32 -luser32
+	$(CC) -falign-functions=1 -falign-jumps=1 -falign-loops=1 -fno-asynchronous-unwind-tables -fno-ident -fno-stack-protector -fno-unwind-tables -fomit-frame-pointer -mpreferred-stack-boundary=3 -municode -mwindows -nolibc -nostdlib -s -std=c11 -Os -Wall -Wextra -Wl,--section-alignment,16,--file-alignment,16 -o $@ $< chainloader.res -lcomctl32 -lkernel32 -luser32
 
 chainloader.res: chainloader.rc
 	$(RC) -O coff -o $@ $<
