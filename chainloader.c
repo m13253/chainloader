@@ -22,7 +22,6 @@
   SOFTWARE.
 */
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdnoreturn.h>
 
