@@ -37,6 +37,7 @@ noreturn void WINAPI WinMainCRTStartup(void)
     PROCESS_INFORMATION process_info;
     {
         LPWSTR cmdline = GetCommandLineW();
+
         // https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments?view=msvc-170
         if (!cmdline) {
             goto invalid_cmdline;
