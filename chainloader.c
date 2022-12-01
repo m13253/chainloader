@@ -95,7 +95,7 @@ noreturn void WINAPI WinMainCRTStartup(void)
         STARTUPINFOW startup_info;
         GetStartupInfoW(&startup_info);
 
-        if (CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_info) == FALSE) {
+        if (CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, CREATE_UNICODE_ENVIRONMENT | INHERIT_PARENT_AFFINITY, NULL, NULL, &startup_info, &process_info) == FALSE) {
             exit_code = GetLastError();
             goto show_error_message;
         }
